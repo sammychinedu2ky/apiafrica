@@ -7,7 +7,7 @@ on:
 
 
 env:
-    AZURE_WEBAPP_NAME: swacblooms
+    AZURE_WEBAPP_NAME: swacbloom
     DOTNET_VERSION: '7.0'
     RGNAME: swacbloomswebapp
 

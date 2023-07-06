@@ -1,0 +1,54 @@
+name: Deploy ASP.NET Core app to Azure Web App
+
+on:
+    push:
+        branches:
+            - master
+
+
+env:
+    AZURE_WEBAPP_NAME: swacblooms
+    DOTNET_VERSION: '7.0'
+    RGNAME: swacbloomswebapp
+
+jobs:
+    build-and-deploy:
+        runs-on: ubuntu-latest
+        steps:
+            # Checkout the repo
+            - uses: actions/checkout@master
+
+            # Setup Azure CLI
+            - name: Install Azure CLI
+              uses: azure/login@v1
+              with:
+                creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+            # Setup Infrastructure
+            - name: Orchestrate Web Server
+              shell: pwsh
+              run: |
+                az deployment group create --resource-group ${{env.RGNAME}} --template-file ./infrastructure/server.bicep
+
+            # Setup .NET Core SDK
+            - name: Setup .NET Core
+              uses: actions/setup-dotnet@v1
+              with:
+                dotnet-version: ${{env.DOTNET_VERSION}}
+
+            # Run dotnet pubish
+            - name: dotnet publish
+              run: |
+                dotnet publish -c Release -o ./publish
+            
+            # Deploy Web app to Azure
+            - name: Deploy Web app to Azure
+              shell: pwsh
+              run: |
+                Compress-Archive -Force ./publish/* publish.zip
+                az webapp deployment source config-zip `
+                -g ${{env.RGNAME}} `
+                -n ${{env.AZURE_WEBAPP_NAME}} `
+                --src publish.zip
+                "The Web App URL is https://${{env.AZURE_WEBAPP_NAME}}.azurewebsites.net">>$env:GITHUB_STEP_SUMMARY
+
